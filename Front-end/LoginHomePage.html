@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css">
+    <link href="styles/print/main.css" rel="stylesheet" type="text/css" media="print">
+    <link rel="stylesheet" type="text/css" href="js/jquery.lightbox-0.5.css" media="screen" />
+    <style>
+        .login-form {
+            width: 300px;
+            margin: 0 auto;
+            font-family: Tahoma, Geneva, sans-serif;
+        }
+
+        .login-form h1 {
+            text-align: center;
+            color: #4d4d4d;
+            font-size: 24px;
+            padding: 20px 0 20px 0;
+        }
+
+        .login-form input[type="password"],
+        .login-form input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #dddddd;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .login-form input[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background-color: #535b63;
+            border: 0;
+            box-sizing: border-box;
+            cursor: pointer;
+            font-weight: bold;
+            color: #ffffff;
+        }
+    </style>
+    <script defer>
+        async function SaveBlog(event) {
+            event.preventDefault();
+            title = document.getElementById('title').value;
+            description = document.getElementById('description').value;
+            const token = window.localStorage.getItem('token').toString();
+            let response = await fetch(`http://localhost:3000/Blog/blog`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+
+                },
+                body: JSON.stringify({
+                    "title": title,
+                    "description": description,
+                    "date": new Date().toISOString(),
+                    "token": token
+                })
+            });
+            if (response.status === 201) {
+                response = await response.json();
+                alert("Blog Created");
+                document.location.href = "./LoginHomePage.html";
+            }
+            else {
+                alert("Something went wrong")
+            }
+        }
+        async function getUserBlogs() {
+            let response = await fetch(`http://localhost:3000/Blog/blog/${window.localStorage.getItem('token')}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+
+                },
+            });
+            if (response.status === 200) {
+                response = await response.json();
+                let arrayOfObjects = [];
+                let flag = true;
+                for (let i = 0; i < response.blogs.length; i++) {
+
+                    let articleTag = document.createElement('article');
+                    articleTag.className = "post";
+                    articleTag.style = "margin-top:10%";
+                    let headerTag = document.createElement('header');
+                    headerTag.className = "postheader";
+                    let titleTag = document.createElement('h2');
+                    titleTag.innerHTML = "Title of the Blog:: " + response.blogs[i].title;
+                    let postDescription = document.createElement('p');
+                    let dateTag = document.createElement('p');
+                    let buttonTag = document.createElement('button');
+                    let buttonTagEdit = document.createElement('button');
+                    arrayOfObjects.push(response.blogs[i]._id);
+                    buttonTag.id = i;
+                    buttonTagEdit.id = i;
+                    buttonTagEdit.innerText = 'Edit this Blog';
+                    buttonTag.innerText = 'Delete the Blog';
+                    buttonTag.className = "bu";
+                    buttonTagEdit.className = "Edit"
+                    postDescription.innerHTML = "Description of Blog:: " + response.blogs[i].description;
+                    dateTag.innerHTML = "Date created:: " + response.blogs[i].date;
+
+                    let section = document.getElementById("contents");
+                    section.appendChild(articleTag);
+                    articleTag.appendChild(headerTag);
+                    headerTag.appendChild(titleTag);
+                    articleTag.appendChild(postDescription);
+                    articleTag.appendChild(dateTag);
+                    articleTag.appendChild(buttonTag);
+                    articleTag.appendChild(buttonTagEdit);
+                    flag = false;
+                }
+                console.log(arrayOfObjects);
+                function hasClass(elem, className) {
+                    return elem.className.split(' ').indexOf(className) > -1;
+                }
+                document.addEventListener('click', async function (e) {
+                    console.log(e.target.id);
+                    if (hasClass(e.target, 'bu')) {
+                        let response = await fetch(`http://localhost:3000/Blog/blog/${arrayOfObjects[e.target.id]}/${window.localStorage.getItem('token')}`, {
+                            method: 'DELETE',
+                            // mode: 'no-cors',
+                            headers: {
+                                'Content-Type': 'application/json'
+
+                            },
+                        });
+                        if (response.status == 204) {
+                            // window.localStorage.removeItem('token');
+                            alert("Blog deleted succesfully ");
+                            window.location.reload();
+                            // window.location.href = "./index.html"
+                        }
+                        else {
+                            alert("Something went wrong while deleting the blog");
+                        }
+                    }
+                    if (hasClass(e.target, 'Edit')) {
+                        let response = await fetch(`http://localhost:3000/Blog/blog/${window.localStorage.getItem('token')}`, {
+                            method: 'GET',
+                        });
+                        response = await response.json();
+                        let respectiveID = arrayOfObjects[e.target.id];
+                        respectiveBlog = response.blogs.find((blog) => blog._id === respectiveID);
+                        console.log("respectiveBlog", respectiveBlog);
+                        let title = window.prompt("Title of Blog", respectiveBlog.title);
+                        let description = window.prompt("Description of Blog", respectiveBlog.description);
+                        console.log(title);
+                        console.log(description);
+
+                        let response1 = await fetch(`http://localhost:3000/Blog/blog/${respectiveBlog._id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+
+                            },
+                            body: JSON.stringify({
+                                "title": title,
+                                "description": description,
+                            })
+                        });
+
+                        if (response1.status==200) {
+                            alert("Blog Updated Successfully"); 
+                            window.location.reload();                           
+                        }
+                        else {
+                            alert("Something went wrong while saving ");
+                        }
+                    }
+                });
+
+                if (flag) {
+                    let section = document.getElementById("contents");
+                    let headerTag = document.createElement('header');
+                    headerTag.className = "postheader";
+                    headerTag.innerHTML = "You have  no blogs"
+                    section.appendChild(headerTag);
+                }
+            }
+            else {
+                alert("Something went wrong")
+            }
+        }
+        async function Logout(event) {
+            event.preventDefault();
+            let response = await fetch(`http://localhost:3000/User/Logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+
+                },
+            });
+            if (response.status == 201) {
+                window.localStorage.removeItem('token');
+                alert("You are Logged out");
+                window.location.href = "./index.html"
+            }
+        }
+    </script>
+</head>
+
+<body onload="getUserBlogs()">
+    <div class="login-form">
+        <h1>User home blog page</h1>
+        <input type="text" name="username" id="title" placeholder="Blog title" required>
+        <input type="text" id="description" placeholder="Blog description" required>
+        <button type="button" onclick="SaveBlog(event)">Save Blog</button>
+        <button type="button" onclick="Logout(event)"> Logout</button>
+        <section id="contents">
+
+            <!-- <article class="post" style="margin-top: 10%;">
+                <header class="postheader">
+                    <h2></h2>
+                    <p class="postinfo"></p>
+                </header>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus varius nulla vel metus
+                    facilisis congue. Phasellus sed velit ipsum. Morbi suscipit ipsum vel tellus pulvinar aliquam.
+                    Aliquam non dui vel magna mollis molestie a nec quam.<a href="#"> Read More</a></p>
+            </article> -->
+            <section />
+
+    </div>
+</body>
+
+</html>
